@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エアコン工事 事前確認チェックツール</title>
+<style>
+  :root{
+    --ink:#23303a;
+    --paper:#f6f4ee;
+    --line:#cfc9bd;
+    --accent:#2f6f5e;
+    --accent-soft:#e4efe9;
+    --warn:#b5532f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Hiragino Sans","Yu Gothic",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    padding:24px;
+  }
+  .sheet{
+    max-width:760px;
+    margin:0 auto;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:20px 24px;
+  }
+  header h1{
+    margin:0;
+    font-size:1.3rem;
+    letter-spacing:.05em;
+  }
+  header p{
+    margin:6px 0 0;
+    font-size:.8rem;
+    opacity:.75;
+  }
+  .section{
+    border-bottom:1px solid var(--line);
+    padding:18px 24px;
+  }
+  .section:last-of-type{border-bottom:none;}
+  .section h2{
+    font-size:.95rem;
+    margin:0 0 12px;
+    color:var(--accent);
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .section h2 .num{
+    font-size:.75rem;
+    color:#fff;
+    background:var(--accent);
+    border-radius:3px;
+    padding:1px 6px;
+    font-weight:600;
+  }
+  .field{margin-bottom:10px;}
+  .field label.title{
+    display:block;
+    font-size:.88rem;
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .options{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .options label{
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:.85rem;
+    cursor:pointer;
+    background:#fff;
+    transition:.15s;
+  }
+  .options input{margin-right:6px;}
+  .options label:hover{border-color:var(--accent);}
+  .options input:checked + span,
+  .options label:has(input:checked){
+    background:var(--accent-soft);
+    border-color:var(--accent);
+    color:var(--accent);
+    font-weight:600;
+  }
+  textarea, input[type=text], input[type=number]{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:8px 10px;
+    font-size:.85rem;
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:50px;}
+  .note{
+    font-size:.78rem;
+    color:#7a7468;
+    margin-top:4px;
+  }
+  .warn-box{
+    display:none;
+    margin-top:8px;
+    background:#fbeee7;
+    border:1px solid var(--warn);
+    color:var(--warn);
+    border-radius:4px;
+    padding:8px 10px;
+    font-size:.8rem;
+  }
+  .warn-box.show{display:block;}
+  .actions{
+    padding:18px 24px;
+    display:flex;
+    gap:10px;
+  }
+  button{
+    border:none;
+    border-radius:4px;
+    padding:10px 20px;
+    font-size:.9rem;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-secondary{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  .summary{
+    padding:18px 24px;
+    background:var(--accent-soft);
+    font-size:.85rem;
+    white-space:pre-wrap;
+    display:none;
+  }
+  .summary.show{display:block;}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <h1>エアコン工事 事前確認チェックツール</h1>
+    <p>新規・入れ替え工事の現地調査・打合せ時にご活用ください</p>
+  </header>
+
+  <!-- 1. 工事種別 -->
+  <div class="section">
+    <h2><span class="num">1</span>工事種別</h2>
+    <div class="field">
+      <label class="title">新規工事 / 入れ替え工事</label>
+      <div class="options">
+        <label><input type="radio" name="work_type" value="新規"><span>新規工事</span></label>
+        <label><input type="radio" name="work_type" value="入れ替え"><span>入れ替え工事</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 建物情報 -->
+  <div class="section">
+    <h2><span class="num">2</span>建物情報</h2>
+    <div class="field">
+      <label class="title">建物種別</label>
+      <div class="options">
+        <label><input type="radio" name="building_type" value="戸建て"><span>戸建て</span></label>
+        <label><input type="radio" name="building_type" value="集合住宅"><span>集合住宅</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">所有形態</label>
+      <div class="options">
+        <label><input type="radio" name="ownership" value="持ち家"><span>持ち家</span></label>
+        <label><input type="radio" name="ownership" value="賃貸" id="rental_radio"><span>賃貸</span></label>
+      </div>
+      <div class="warn-box" id="rental_warn">
+        賃貸の場合は管理会社・オーナーへの工事許可確認が必要です。
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">建築年月</label>
+      <input type="month" name="building_date">
+      <span class="note">建築年月を選択してください（築年数が古い場合は壁・配管の劣化に注意）</span>
+      <div class="warn-box" id="asbestos_warn">
+        2006年8月以前の建物で穴あけ工事が必要な場合、石綿（アスベスト）建材調査が必要です。<br>
+        調査費用：3,300円（税込）が発生します。
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 設置工事内容 -->
+  <div class="section">
+    <h2><span class="num">3</span>設置・施工内容</h2>
+    <div class="field">
+      <label class="title">穴あけは必要か</label>
+      <div class="options">
+        <label><input type="radio" name="drilling" value="必要" id="drill_yes"><span>必要</span></label>
+        <label><input type="radio" name="drilling" value="不要"><span>不要（既存穴を利用）</span></label>
+      </div>
+      <div class="warn-box" id="rental_drill_warn">
+        賃貸住宅での穴あけ工事は基本的に行いません。専用用紙にて管理会社または大家様への確認事項をご記入のうえ、お客様のご署名が必要です。
+      </div>
+      <div class="warn-box" id="owned_drill_warn">
+        穴あけ工事が必要です。お客様に建物の図面（配管・構造がわかるもの）のご用意を依頼してください。
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">室内機の設置階</label>
+      <input type="number" name="indoor_floor" placeholder="例：2" min="0">
+      <span class="note">階数（例：2）</span>
+    </div>
+    <div class="field">
+      <label class="title">室外機の設置場所</label>
+      <div class="options">
+        <label><input type="radio" name="outdoor_location" value="平地/ベランダ"><span>平地/ベランダ</span></label>
+        <label><input type="radio" name="outdoor_location" value="屋根置き"><span>屋根置き</span></label>
+        <label><input type="radio" name="outdoor_location" value="2段置き"><span>2段置き</span></label>
+        <label><input type="radio" name="outdoor_location" value="天吊" id="outdoor_ceiling"><span>天吊</span></label>
+      </div>
+      <div class="warn-box" id="outdoor_special_warn">
+        屋根置き・2段置き・天吊の場合、追加部材・特殊施工となるため事前見積りが必要です。
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">室外機の設置階</label>
+      <input type="number" name="outdoor_floor" placeholder="例：1" min="0">
+      <span class="note">階数（例：1）</span>
+      <div class="warn-box" id="floor_mismatch_warn">
+        室内機と室外機の設置階が異なります。配管が階をまたぐ施工となるため、必ず事前見積りが必要です。
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">室内機の寸法は問題ないか</label>
+      <div class="options">
+        <label><input type="radio" name="indoor_size" value="問題なし"><span>問題なし</span></label>
+        <label><input type="radio" name="indoor_size" value="要確認"><span>要確認</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">壁の強度は問題ないか</label>
+      <div class="options">
+        <label><input type="radio" name="wall_strength" value="問題なし"><span>問題なし</span></label>
+        <label><input type="radio" name="wall_strength" value="要確認"><span>要確認</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">エアコン専用コンセントの有無</label>
+      <div class="options">
+        <label><input type="radio" name="outlet" value="あり"><span>あり</span></label>
+        <label><input type="radio" name="outlet" value="なし" id="outlet_no"><span>なし</span></label>
+      </div>
+      <div class="warn-box" id="outlet_warn">
+        専用コンセントがない場合、電気工事（コンセント新設・増設）が別途必要です。
+      </div>
+      <div class="warn-box" id="estimate_required_warn">
+        室内化粧カバーが必要な場合は、必ず事前見積りが必要です。
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">化粧カバー（室内・室外配管カバー）</label>
+      <div class="options">
+        <label><input type="checkbox" name="cover_indoor" value="室内化粧カバー"><span>室内 必要</span></label>
+        <label><input type="checkbox" name="cover_outdoor" value="室外化粧カバー"><span>室外 必要</span></label>
+        <label><input type="checkbox" name="cover_none" value="不要"><span>不要</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. その他 -->
+  <div class="section">
+    <h2><span class="num">4</span>事前見積り・立会い</h2>
+    <div class="field">
+      <label class="title">事前見積りは必要か</label>
+      <div class="options">
+        <label><input type="radio" name="pre_estimate" value="必要"><span>必要</span></label>
+        <label><input type="radio" name="pre_estimate" value="不要"><span>不要</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">当日の立会者</label>
+      <div class="options">
+        <label><input type="radio" name="attendee" value="本人"><span>本人</span></label>
+        <label><input type="radio" name="attendee" value="代理人" id="agent_radio"><span>代理人</span></label>
+      </div>
+      <div class="warn-box" id="agent_warn">
+        代理人が立会う場合、本人からの委任内容・連絡先を確認してください。
+      </div>
+    </div>
+    <div class="field">
+      <label class="title">その他備考</label>
+      <textarea name="memo" placeholder="特記事項があればご記入ください"></textarea>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" id="checkBtn">確認内容を表示</button>
+    <button class="btn-secondary" id="resetBtn">リセット</button>
+  </div>
+
+  <div class="summary" id="summary"></div>
+</div>
+
+<script>
+// 条件付き警告表示
+function bindWarn(triggerEls, warnEl, showCondition){
+  triggerEls.forEach(el=>{
+    el.addEventListener('change', ()=>{
+      warnEl.classList.toggle('show', showCondition());
+    });
+  });
+}
+
+const rental = document.getElementById('rental_radio');
+const rentalWarn = document.getElementById('rental_warn');
+bindWarn(document.querySelectorAll('input[name=ownership]'), rentalWarn, ()=> rental.checked);
+
+const outletNo = document.getElementById('outlet_no');
+const outletWarn = document.getElementById('outlet_warn');
+bindWarn(document.querySelectorAll('input[name=outlet]'), outletWarn, ()=> outletNo.checked);
+
+const agent = document.getElementById('agent_radio');
+const agentWarn = document.getElementById('agent_warn');
+bindWarn(document.querySelectorAll('input[name=attendee]'), agentWarn, ()=> agent.checked);
+
+// 石綿（アスベスト）調査アラート：2006年8月以前の建物 ＋ 穴あけ必要
+const buildingDate = document.querySelector('input[name=building_date]');
+const drillingRadios = document.querySelectorAll('input[name=drilling]');
+const asbestosWarn = document.getElementById('asbestos_warn');
+
+function checkAsbestos(){
+  const dateVal = buildingDate.value; // "YYYY-MM"
+  const drillChecked = document.querySelector('input[name=drilling]:checked');
+  let show = false;
+  if(dateVal && drillChecked && drillChecked.value === '必要'){
+    const [y, m] = dateVal.split('-').map(Number);
+    if(y < 2006 || (y === 2006 && m <= 8)){
+      show = true;
+    }
+  }
+  asbestosWarn.classList.toggle('show', show);
+}
+
+buildingDate.addEventListener('change', checkAsbestos);
+drillingRadios.forEach(el=> el.addEventListener('change', checkAsbestos));
+
+// 室内化粧カバー必要 → 事前見積り必須アラート
+const coverIndoor = document.querySelector('input[name=cover_indoor]');
+const estimateWarn = document.getElementById('estimate_required_warn');
+
+function checkEstimateRequired(){
+  const show = coverIndoor.checked;
+  estimateWarn.classList.toggle('show', show);
+}
+
+coverIndoor.addEventListener('change', checkEstimateRequired);
+
+// 賃貸＋穴あけ必要 → 管理会社確認・署名アラート
+const ownershipRadios = document.querySelectorAll('input[name=ownership]');
+const rentalDrillWarn = document.getElementById('rental_drill_warn');
+
+function checkRentalDrill(){
+  const ownershipChecked = document.querySelector('input[name=ownership]:checked');
+  const drillChecked = document.querySelector('input[name=drilling]:checked');
+  const show = !!(ownershipChecked && ownershipChecked.value === '賃貸' && drillChecked && drillChecked.value === '必要');
+  rentalDrillWarn.classList.toggle('show', show);
+}
+
+drillingRadios.forEach(el=> el.addEventListener('change', checkRentalDrill));
+
+// 持ち家＋穴あけ必要 → 図面用意依頼アラート
+const ownedDrillWarn = document.getElementById('owned_drill_warn');
+
+function checkOwnedDrill(){
+  const ownershipChecked = document.querySelector('input[name=ownership]:checked');
+  const drillChecked = document.querySelector('input[name=drilling]:checked');
+  const show = !!(ownershipChecked && ownershipChecked.value === '持ち家' && drillChecked && drillChecked.value === '必要');
+  ownedDrillWarn.classList.toggle('show', show);
+}
+
+ownershipRadios.forEach(el=> el.addEventListener('change', checkOwnedDrill));
+drillingRadios.forEach(el=> el.addEventListener('change', checkOwnedDrill));
+
+// 室内機・室外機の設置階が異なる → 事前見積り必須アラート
+const indoorFloor = document.querySelector('input[name=indoor_floor]');
+const outdoorFloor = document.querySelector('input[name=outdoor_floor]');
+const floorMismatchWarn = document.getElementById('floor_mismatch_warn');
+
+function checkFloorMismatch(){
+  const iVal = indoorFloor.value;
+  const oVal = outdoorFloor.value;
+  let show = false;
+  if(iVal !== '' && oVal !== ''){
+    show = Number(iVal) !== Number(oVal);
+  }
+  floorMismatchWarn.classList.toggle('show', show);
+}
+
+indoorFloor.addEventListener('input', checkFloorMismatch);
+outdoorFloor.addEventListener('input', checkFloorMismatch);
+
+// 室外機設置場所が屋根置き/2段置き/天吊 → 事前見積り必須アラート
+const outdoorLocationRadios = document.querySelectorAll('input[name=outdoor_location]');
+const outdoorSpecialWarn = document.getElementById('outdoor_special_warn');
+
+function checkOutdoorSpecial(){
+  const checked = document.querySelector('input[name=outdoor_location]:checked');
+  const show = !!(checked && checked.value !== '平地/ベランダ');
+  outdoorSpecialWarn.classList.toggle('show', show);
+}
+
+outdoorLocationRadios.forEach(el=> el.addEventListener('change', checkOutdoorSpecial));
+
+// サマリー表示
+document.getElementById('checkBtn').addEventListener('click', ()=>{
+  const getRadio = (name)=>{
+    const el = document.querySelector(`input[name=${name}]:checked`);
+    return el ? el.value : '未選択';
+  };
+  const getText = (name)=> document.querySelector(`[name=${name}]`).value || '未入力';
+  const covers = [];
+  if(document.querySelector('[name=cover_indoor]').checked) covers.push('室内化粧カバー');
+  if(document.querySelector('[name=cover_outdoor]').checked) covers.push('室外化粧カバー');
+  if(document.querySelector('[name=cover_none]').checked) covers.push('不要');
+
+  const lines = [
+    `工事種別：${getRadio('work_type')}`,
+    `建物種別：${getRadio('building_type')}`,
+    `所有形態：${getRadio('ownership')}`,
+    `建築年月：${getText('building_date')}`,
+    `穴あけ：${getRadio('drilling')}`,
+    `室内機設置階：${getText('indoor_floor')}階`,
+    `室外機設置場所：${getRadio('outdoor_location')}（${getText('outdoor_floor')}階）`,
+    `室内機寸法：${getRadio('indoor_size')}`,
+    `壁の強度：${getRadio('wall_strength')}`,
+    `専用コンセント：${getRadio('outlet')}`,
+    `化粧カバー：${covers.length ? covers.join('、') : '未選択'}`,
+    `事前見積り：${getRadio('pre_estimate')}`,
+    `立会者：${getRadio('attendee')}`,
+    `備考：${getText('memo')}`,
+  ];
+  const summaryEl = document.getElementById('summary');
+  summaryEl.textContent = '【確認結果】\n' + lines.join('\n');
+  summaryEl.classList.add('show');
+  summaryEl.scrollIntoView({behavior:'smooth'});
+
+  // 表示中のアラートが1つでもあれば、確認内容表示後にポップアップ
+  const visibleWarns = document.querySelectorAll('.warn-box.show');
+  if(visibleWarns.length > 0){
+    setTimeout(()=>{
+      alert('注意事項が表示されています。\n対応を進める前に、必ず上長または先輩社員に内容を確認してもらってください。');
+    }, 100);
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('.warn-box').forEach(w=>w.classList.remove('show'));
+  document.getElementById('summary').classList.remove('show');
+});
+</script>
+</body>
+</html>
