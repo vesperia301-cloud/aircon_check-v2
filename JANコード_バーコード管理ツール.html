@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JANコード・バーコード管理ツール</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<style>
+:root{
+  --bg:#f4f7fb; --card:#fff; --navy:#17324d; --blue:#2f6fb0;
+  --line:#d9e2ec; --text:#1f2937; --muted:#6b7280; --yellow:#fff4bf;
+  --green:#e9f7ef; --danger:#b42318;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,var(--navy),#244f77);color:#fff;padding:18px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 10px #0002}
+header h1{margin:0;font-size:20px}
+header p{margin:5px 0 0;font-size:12px;opacity:.85}
+main{max-width:960px;margin:auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px #17324d0d}
+h2{font-size:17px;margin:0 0 14px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+label{font-size:13px;font-weight:700;display:block;margin-bottom:6px}
+input,select{width:100%;min-height:46px;border:1px solid #bdc9d5;border-radius:10px;padding:10px 12px;font-size:16px;background:#fff}
+.input-cell{background:var(--yellow)}
+.auto-cell{background:var(--green)}
+button{min-height:46px;border:0;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:#fff}
+.secondary{background:#e8eef5;color:var(--navy)}
+.success{background:#18794e;color:#fff}
+.danger{background:#fff0ee;color:var(--danger);border:1px solid #f2b8b5}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row button{flex:1}
+.preview{text-align:center;padding:14px;border:2px dashed #b9c8d8;border-radius:14px;background:#fcfdff}
+.preview .name{font-size:20px;font-weight:800;margin-bottom:8px}
+.preview .jan{font-size:18px;letter-spacing:1px;font-weight:700}
+svg{max-width:100%;height:auto}
+.list{display:grid;gap:8px;margin-top:12px}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.star{font-size:22px;background:none;padding:0;min-height:auto}
+.badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:12px;background:#edf3f8;color:var(--navy);margin-right:6px}
+.item-title{font-weight:700}
+.item-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.small-actions{display:flex;gap:6px}
+.small-actions button{min-height:36px;padding:6px 10px;font-size:12px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;background:#e8eef5;color:var(--navy)}
+.tab.active{background:var(--navy);color:#fff}
+.hidden{display:none!important}
+.notice{font-size:12px;color:var(--muted);line-height:1.6}
+dialog{border:0;border-radius:16px;padding:0;width:min(92vw,520px);box-shadow:0 20px 60px #0005}
+dialog::backdrop{background:#0008}
+.dialog-body{padding:18px}
+.fullscreen-barcode{background:#fff;text-align:center;padding:24px}
+.fullscreen-barcode .name{font-size:24px;font-weight:800}
+.fullscreen-barcode .jan{font-size:22px;font-weight:800}
+@media(max-width:640px){
+ .grid,.grid3{grid-template-columns:1fr}
+ main{padding:10px}
+ .card{padding:14px}
+ .item{grid-template-columns:auto 1fr}
+ .small-actions{grid-column:1/-1}
+}
+@media print{
+ header,.no-print,.tabs,.card:not(.print-target){display:none!important}
+ body{background:#fff}
+ .print-target{border:0;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>JANコード・バーコード管理ツール</h1>
+  <p>保証・配送・工事のJANコードを登録し、レジ読取用バーコードを表示</p>
+</header>
+
+<main>
+  <div class="tabs no-print">
+    <button class="tab active" data-tab="use">バーコード表示</button>
+    <button class="tab" data-tab="manage">登録・管理</button>
+  </div>
+
+  <section id="use" class="tabpane">
+    <div class="card">
+      <h2>バーコードを選択</h2>
+      <div class="grid">
+        <div><label>分類</label><select id="useCategory" class="input-cell"></select></div>
+        <div><label>名称</label><select id="useName" class="input-cell"></select></div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="row no-print">
+        <button class="primary" id="showBtn">バーコード表示</button>
+        <button class="secondary" id="fullscreenBtn">全画面表示</button>
+      </div>
+    </div>
+
+    <div class="card print-target">
+      <h2>バーコード</h2>
+      <div class="preview">
+        <div class="name" id="previewName">名称を選択してください</div>
+        <svg id="barcode"></svg>
+        <div class="jan" id="previewJan"></div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="row no-print">
+        <button class="success" onclick="window.print()">印刷</button>
+        <button class="secondary" id="copyBtn">JANコードをコピー</button>
+      </div>
+    </div>
+
+    <div class="card no-print">
+      <h2>お気に入り</h2>
+      <div id="favoriteList" class="list"></div>
+    </div>
+  </section>
+
+  <section id="manage" class="tabpane hidden">
+    <div class="card">
+      <h2>JANコード登録</h2>
+      <input type="hidden" id="editId">
+      <div class="grid3">
+        <div>
+          <label>分類</label>
+          <select id="category" class="input-cell">
+            <option>保証</option><option>配送</option><option>工事</option>
+          </select>
+        </div>
+        <div><label>名称</label><input id="name" class="input-cell" placeholder="例：5年保証"></div>
+        <div><label>JANコード</label><input id="jan" class="input-cell" inputmode="numeric" maxlength="13" placeholder="13桁"></div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="row">
+        <button class="primary" id="saveBtn">登録する</button>
+        <button class="secondary" id="clearBtn">入力をクリア</button>
+      </div>
+      <p class="notice">JANコードは8桁・12桁・13桁に対応します。店舗独自コードはCode128で表示します。</p>
+    </div>
+
+    <div class="card">
+      <h2>登録済み一覧</h2>
+      <div class="grid">
+        <div><label>検索</label><input id="search" placeholder="名称・JANコードで検索"></div>
+        <div><label>分類絞り込み</label>
+          <select id="filterCategory"><option value="">すべて</option><option>保証</option><option>配送</option><option>工事</option></select>
+        </div>
+      </div>
+      <div id="itemList" class="list"></div>
+    </div>
+
+    <div class="card">
+      <h2>データ管理</h2>
+      <div class="row">
+        <button class="secondary" id="exportBtn">CSV書き出し</button>
+        <button class="secondary" id="importBtn">CSV読み込み</button>
+        <button class="danger" id="resetBtn">全データ削除</button>
+      </div>
+      <input type="file" id="fileInput" accept=".csv" class="hidden">
+    </div>
+  </section>
+</main>
+
+<dialog id="fullDialog">
+  <div class="dialog-body fullscreen-barcode">
+    <div class="name" id="fullName"></div>
+    <svg id="fullBarcode"></svg>
+    <div class="jan" id="fullJan"></div>
+    <div style="height:14px"></div>
+    <button class="primary" onclick="document.getElementById('fullDialog').close()">閉じる</button>
+  </div>
+</dialog>
+
+<script>
+const KEY='janBarcodeItems_v1';
+const defaultItems=[
+ {id:crypto.randomUUID(),category:'保証',name:'5年保証',jan:'4900000000011',favorite:true},
+ {id:crypto.randomUUID(),category:'保証',name:'10年保証',jan:'4900000000028',favorite:false},
+ {id:crypto.randomUUID(),category:'配送',name:'標準配送',jan:'4900000000035',favorite:true},
+ {id:crypto.randomUUID(),category:'配送',name:'時間指定配送',jan:'4900000000042',favorite:false},
+ {id:crypto.randomUUID(),category:'工事',name:'標準工事 4.0kW以下',jan:'4900000000059',favorite:true},
+ {id:crypto.randomUUID(),category:'工事',name:'標準工事 5.6kW以上',jan:'4900000000066',favorite:false}
+];
+let items=JSON.parse(localStorage.getItem(KEY)||'null')||defaultItems;
+let selectedId=null;
+const $=id=>document.getElementById(id);
+function persist(){localStorage.setItem(KEY,JSON.stringify(items))}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function validJan(v){return /^\d{8}$|^\d{12}$|^\d{13}$/.test(v)}
+function renderSelectors(){
+ const cats=['保証','配送','工事'];
+ $('useCategory').innerHTML=cats.map(c=>`<option>${c}</option>`).join('');
+ updateNameOptions();
+}
+function updateNameOptions(){
+ const cat=$('useCategory').value;
+ const list=items.filter(x=>x.category===cat);
+ $('useName').innerHTML=list.length?list.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join(''):'<option value="">登録なし</option>';
+ if(list.length){selectedId=list[0].id; draw(list[0])}
+ else{selectedId=null; clearPreview()}
+}
+function clearPreview(){
+ $('previewName').textContent='登録データがありません'; $('previewJan').textContent=''; $('barcode').innerHTML='';
+}
+function draw(item){
+ if(!item)return;
+ selectedId=item.id;
+ $('previewName').textContent=item.name;
+ $('previewJan').textContent=item.jan;
+ JsBarcode('#barcode',item.jan,{format:'CODE128',displayValue:false,height:90,width:2,margin:8});
+}
+function renderList(){
+ const q=$('search').value.trim().toLowerCase(), fc=$('filterCategory').value;
+ const list=items.filter(x=>(!fc||x.category===fc)&&(!q||x.name.toLowerCase().includes(q)||x.jan.includes(q)));
+ $('itemList').innerHTML=list.length?list.map(x=>`
+ <div class="item">
+  <button class="star" onclick="toggleFavorite('${x.id}')">${x.favorite?'★':'☆'}</button>
+  <div><div><span class="badge">${esc(x.category)}</span><span class="item-title">${esc(x.name)}</span></div><div class="item-sub">${x.jan}</div></div>
+  <div class="small-actions"><button class="secondary" onclick="useItem('${x.id}')">表示</button><button class="secondary" onclick="editItem('${x.id}')">編集</button><button class="danger" onclick="deleteItem('${x.id}')">削除</button></div>
+ </div>`).join(''):'<p class="notice">該当データがありません。</p>';
+ renderFavorites();
+}
+function renderFavorites(){
+ const fav=items.filter(x=>x.favorite);
+ $('favoriteList').innerHTML=fav.length?fav.map(x=>`
+ <div class="item"><button class="star" onclick="toggleFavorite('${x.id}')">★</button>
+ <div><span class="badge">${esc(x.category)}</span><span class="item-title">${esc(x.name)}</span><div class="item-sub">${x.jan}</div></div>
+ <div class="small-actions"><button class="primary" onclick="useItem('${x.id}')">表示</button></div></div>`).join(''):'<p class="notice">お気に入りはありません。</p>';
+}
+window.toggleFavorite=id=>{const x=items.find(i=>i.id===id);if(x)x.favorite=!x.favorite;persist();renderList()}
+window.useItem=id=>{
+ const x=items.find(i=>i.id===id); if(!x)return;
+ document.querySelector('[data-tab="use"]').click();
+ $('useCategory').value=x.category; updateNameOptions(); $('useName').value=id; draw(x); window.scrollTo({top:0,behavior:'smooth'});
+}
+window.editItem=id=>{
+ const x=items.find(i=>i.id===id);if(!x)return;
+ $('editId').value=x.id;$('category').value=x.category;$('name').value=x.name;$('jan').value=x.jan;$('saveBtn').textContent='更新する';
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+window.deleteItem=id=>{if(confirm('この登録を削除しますか？')){items=items.filter(i=>i.id!==id);persist();renderAll()}}
+function renderAll(){renderSelectors();renderList()}
+$('saveBtn').onclick=()=>{
+ const id=$('editId').value, category=$('category').value, name=$('name').value.trim(), jan=$('jan').value.trim();
+ if(!name){alert('名称を入力してください。');return}
+ if(!validJan(jan)){alert('JANコードは8桁・12桁・13桁の数字で入力してください。');return}
+ if(items.some(x=>x.jan===jan&&x.id!==id)){alert('同じJANコードが登録されています。');return}
+ if(id){const x=items.find(i=>i.id===id);Object.assign(x,{category,name,jan})}
+ else items.push({id:crypto.randomUUID(),category,name,jan,favorite:false});
+ persist(); clearForm(); renderAll(); alert('保存しました。');
+}
+function clearForm(){$('editId').value='';$('name').value='';$('jan').value='';$('saveBtn').textContent='登録する'}
+$('clearBtn').onclick=clearForm;
+$('useCategory').onchange=updateNameOptions;
+$('useName').onchange=()=>draw(items.find(x=>x.id===$('useName').value));
+$('showBtn').onclick=()=>draw(items.find(x=>x.id===$('useName').value));
+$('fullscreenBtn').onclick=()=>{
+ const x=items.find(i=>i.id===selectedId);if(!x){alert('バーコードを選択してください。');return}
+ $('fullName').textContent=x.name;$('fullJan').textContent=x.jan;
+ JsBarcode('#fullBarcode',x.jan,{format:'CODE128',displayValue:false,height:150,width:3,margin:10});
+ $('fullDialog').showModal();
+}
+$('copyBtn').onclick=async()=>{const x=items.find(i=>i.id===selectedId);if(x){await navigator.clipboard.writeText(x.jan);alert('JANコードをコピーしました。')}}
+$('search').oninput=renderList;$('filterCategory').onchange=renderList;
+document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
+ document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+ document.querySelectorAll('.tabpane').forEach(p=>p.classList.add('hidden'));$(btn.dataset.tab).classList.remove('hidden');
+});
+$('exportBtn').onclick=()=>{
+ const rows=[['分類','名称','JANコード','お気に入り'],...items.map(x=>[x.category,x.name,x.jan,x.favorite?'1':'0'])];
+ const csv='\uFEFF'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='JANコード一覧.csv';a.click();URL.revokeObjectURL(a.href);
+}
+$('importBtn').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();r.onload=()=>{
+  const lines=r.result.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean);
+  const parsed=lines.slice(1).map(line=>{
+   const cols=[];line.replace(/"((?:[^"]|"")*)"|([^,]+)/g,(_,q,u)=>{cols.push((q??u??'').replace(/""/g,'"'));return''});
+   return {id:crypto.randomUUID(),category:cols[0],name:cols[1],jan:cols[2],favorite:cols[3]==='1'};
+  }).filter(x=>['保証','配送','工事'].includes(x.category)&&x.name&&validJan(x.jan));
+  if(!parsed.length){alert('読み込めるデータがありません。');return}
+  items=parsed;persist();renderAll();alert('CSVを読み込みました。');
+ };r.readAsText(f,'UTF-8');
+}
+$('resetBtn').onclick=()=>{if(confirm('登録データをすべて削除しますか？')){items=[];persist();renderAll()}}
+renderAll();
+</script>
+</body>
+</html>
